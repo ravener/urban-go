@@ -9,11 +9,11 @@ import (
   "encoding/json"
   "strconv"
   "fmt"
-  "errors"
+  "net/url"
 )
 
 // The version of the package.
-const Version = "0.0.1"
+const Version = "0.0.2"
 
 // Entry represents an entry in the dictionary.
 type Entry struct {
@@ -36,36 +36,48 @@ type response struct {
 
 func get(query string) ([]*Entry, error) {
   req, err := http.NewRequest("GET", "https://api.urbandictionary.com/v0/define" + query, nil)
+
   if err != nil {
     return nil, err
   }
+
   req.Header.Set("User-Agent", "Urban Go (https://github.com/pollen5/urban-go) v" + Version)
+
   res, err := http.DefaultClient.Do(req)
+
   if err != nil {
     return nil, err
   }
+
   defer res.Body.Close()
+
   if res.StatusCode != 200 {
-    return nil, errors.New(fmt.Sprintf("err: non 200 status: %d", res.StatusCode))
+    return nil, fmt.Errorf("err: non 200 status: %d", res.StatusCode)
   }
+
   body, err := ioutil.ReadAll(res.Body)
+
   if err != nil {
     return nil, err
   }
+
   var data response
+
   err = json.Unmarshal(body, &data)
+
   if err != nil {
     return nil, err
   }
+
   return data.List, nil
 }
 
 // Define gets the definitions for a term.
 func Define(term string) ([]*Entry, error) {
-  return get("?term=" + term)
+  return get("?term=" + url.QueryEscape(term))
 }
 
 // DefineByID returns definitions for a given defid
 func DefineByID(defid int) ([]*Entry, error) {
-  return get("?defid=" + strconv.Itoa(defid))
+  return get("?defid=" + url.QueryEscape(strconv.Itoa(defid)))
 }
